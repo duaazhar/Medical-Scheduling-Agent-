@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+
+    <title>Scheduling Dashboard</title>
+
+    <style>
+
+        body{
+            font-family:Arial;
+            margin:40px;
+            background:#f5f5f5;
+        }
+
+        h1{
+            margin-bottom:30px;
+        }
+
+        .cards{
+
+            display:grid;
+
+            grid-template-columns:repeat(3,250px);
+
+            gap:20px;
+
+        }
+
+        .card{
+
+            background:white;
+
+            padding:20px;
+
+            border-radius:10px;
+
+            box-shadow:0 2px 8px rgba(0,0,0,.15);
+
+        }
+
+        .number{
+
+            font-size:36px;
+
+            font-weight:bold;
+
+            margin-top:10px;
+
+        }
+
+
+        table{
+
+            width:100%;
+
+            border-collapse:collapse;
+
+            background:white;
+
+        }
+
+        th{
+
+            background:#2d6cdf;
+
+            color:white;
+
+            padding:12px;
+
+        }
+
+        td{
+
+            padding:12px;
+
+            border-bottom:1px solid #ddd;
+
+        }
+
+        tr:nth-child(even){
+
+            background:#f8f8f8;
+
+        }
+
+    </style>
+
+</head>
+
+<body>
+
+<h1>Orthopedic Scheduling Dashboard</h1>
+
+
+<div class="cards">
+
+    <div class="card">
+
+        <h3>Patients</h3>
+
+        <div
+            class="number"
+            id="patients">
+        </div>
+
+    </div>
+
+
+    <div class="card">
+
+        <h3>Appointments</h3>
+
+        <div
+            class="number"
+            id="appointments">
+        </div>
+
+    </div>
+
+
+    <div class="card">
+
+        <h3>Calls</h3>
+
+        <div
+            class="number"
+            id="calls">
+        </div>
+
+    </div>
+
+
+    <div class="card">
+
+        <h3>Scheduled Calls</h3>
+
+        <div
+            class="number"
+            id="scheduled_calls">
+        </div>
+
+    </div>
+
+
+    <div class="card">
+
+        <h3>Failed Calls</h3>
+
+        <div
+            class="number"
+            id="failed_calls">
+        </div>
+
+    </div>
+
+
+    <div class="card">
+
+        <h3>Available Slots</h3>
+
+        <div
+            class="number"
+            id="available_slots">
+        </div>
+
+    </div>
+
+
+    <div class="card">
+
+        <h3>Booked Slots</h3>
+
+        <div
+            class="number"
+            id="booked_slots">
+        </div>
+
+    </div>
+
+
+</div>
+
+
+<hr style="margin-top:50px;margin-bottom:30px;">
+
+
+<h2>Recent Calls</h2>
+
+
+<table id="callsTable">
+
+<thead>
+
+<tr>
+
+<th>Patient</th>
+
+<th>Phone</th>
+
+<th>Status</th>
+
+<th>Doctor</th>
+
+<th>Location</th>
+
+<th>Started</th>
+
+<th>Ended</th>
+
+</tr>
+
+</thead>
+
+
+<tbody>
+
+</tbody>
+
+
+</table>
+
+
+
+<script>
+
+
+async function loadDashboard(){
+
+    const response =
+        await fetch("/dashboard/stats");
+
+
+    const data =
+        await response.json();
+
+
+    document.getElementById(
+        "patients"
+    ).innerText =
+        data.patients;
+
+
+    document.getElementById(
+        "appointments"
+    ).innerText =
+        data.appointments;
+
+
+    document.getElementById(
+        "calls"
+    ).innerText =
+        data.calls;
+
+
+    document.getElementById(
+        "scheduled_calls"
+    ).innerText =
+        data.scheduled_calls;
+
+
+    document.getElementById(
+        "failed_calls"
+    ).innerText =
+        data.failed_calls;
+
+
+    document.getElementById(
+        "available_slots"
+    ).innerText =
+        data.available_slots;
+
+
+    document.getElementById(
+        "booked_slots"
+    ).innerText =
+        data.booked_slots;
+
+}
+
+
+
+async function loadCalls(){
+
+    const response =
+        await fetch("/dashboard/calls");
+
+
+    const calls =
+        await response.json();
+
+
+    const tbody =
+        document.querySelector(
+            "#callsTable tbody"
+        );
+
+
+    tbody.innerHTML = "";
+
+
+    calls.forEach(call => {
+
+        tbody.innerHTML += `
+
+        <tr>
+
+            <td>${call.patient}</td>
+
+            <td>${call.phone_number}</td>
+
+            <td>${call.status}</td>
+
+            <td>${call.doctor ?? "-"}</td>
+
+            <td>${call.location ?? "-"}</td>
+
+            <td>${call.started_at}</td>
+
+            <td>${call.ended_at}</td>
+
+        </tr>
+
+        `;
+
+    });
+
+}
+
+
+
+loadDashboard();
+
+loadCalls();
+
+
+</script>
+
+
+</body>
+
+</html>
