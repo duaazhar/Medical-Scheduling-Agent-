@@ -6,8 +6,10 @@ from models import (
     Patient,
     Appointment,
     Call,
-    Slot
+    Slot,
+    Doctor 
 )
+
 
 dashboard_bp = Blueprint(
     "dashboard",
@@ -116,6 +118,94 @@ def dashboard_calls():
             ),
 
             "transcript": call.transcript or ""
+
+        })
+
+    return jsonify(results)
+
+@dashboard_bp.route("/dashboard/doctors")
+def dashboard_doctors():
+
+    doctors = Doctor.query.order_by(Doctor.name).all()
+
+    results = []
+
+    for doctor in doctors:
+
+        available_slots = (
+            Slot.query.filter_by(
+                doctor_id=doctor.id,
+                is_available=True
+            ).count()
+        )
+
+        # Remove duplicates
+        body_parts = sorted({
+            capability.body_part.name
+            for capability in doctor.capabilities
+        })
+
+        issue_types = sorted({
+            capability.issue_type.name
+            for capability in doctor.capabilities
+        })
+
+        results.append({
+
+            "doctor": doctor.name,
+
+            "accepting_new_patients":
+                doctor.accepting_new_patients,
+
+            "available_slots": available_slots,
+
+            "body_parts": body_parts,
+
+            "issue_types": issue_types
+
+        })
+
+    return jsonify(results)
+
+@dashboard_bp.route("/dashboard/appointments")
+def dashboard_appointments():
+
+    appointments = (
+        Appointment.query
+        .join(Slot)
+        .order_by(Slot.start_time)
+        .all()
+    )
+
+    results = []
+
+    for appointment in appointments:
+
+        patient = appointment.patient
+        doctor = appointment.doctor
+        slot = appointment.slot
+
+        results.append({
+
+            "appointment_id": appointment.id,
+
+            "patient": (
+                f"{patient.first_name} {patient.last_name}"
+            ),
+
+            "doctor": doctor.name,
+
+            "location": slot.location.name,
+
+            "body_part": appointment.body_part.name,
+
+            "issue_type": appointment.issue_type.name,
+
+            "date": slot.start_time.strftime("%Y-%m-%d"),
+
+            "time": slot.start_time.strftime("%I:%M %p"),
+
+            "status": appointment.status
 
         })
 

@@ -63,29 +63,57 @@ def find_available_slots(doctor):
 
     return slots
 
-def find_first_available_slot(doctors):
-    best_slot = None
+def find_first_available_slot(
+    doctors,
+    preferred_time="Earliest Available"
+):
+
+    preferred_time = preferred_time.lower()
 
     for doctor in doctors:
-        slots = find_available_slots(doctor)
+
+        slots = (
+            Slot.query
+            .filter_by(
+                doctor_id=doctor.id,
+                is_available=True
+            )
+            .order_by(Slot.start_time)
+            .all()
+        )
 
         if not slots:
             continue
 
-        candidate = slots[0]
+        # Earliest available
+        if preferred_time == "earliest available":
+            return slots[0]
 
-        if (
-            best_slot is None
-            or candidate.start_time < best_slot.start_time
-        ):
-            best_slot = candidate
+        # Morning appointments
+        if preferred_time == "morning":
 
-    return best_slot
+            for slot in slots:
+                if slot.start_time.hour < 12:
+                    return slot
+
+        # Afternoon appointments
+        elif preferred_time == "afternoon":
+
+            for slot in slots:
+                if slot.start_time.hour >= 12:
+                    return slot
+
+        # If preference isn't recognized or no matching slot exists,
+        # fall back to the earliest slot for this doctor.
+        return slots[0]
+
+    return None
 
 def route_patient(
     patient,
     body_part_name,
-    issue_type_name
+    issue_type_name,
+    preferred_time="Earliest Available"
 ):
     """
     Finds the best doctor and earliest available slot for a patient.
@@ -129,7 +157,10 @@ def route_patient(
             "reason": "No physicians accepting new patients."
         }
 
-    slot = find_first_available_slot(doctors)
+    slot = find_first_available_slot(
+    doctors,
+    preferred_time
+    )
 
     if slot is None:
         return {

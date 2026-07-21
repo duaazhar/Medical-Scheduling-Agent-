@@ -7,6 +7,7 @@ from services.call_services import (
     complete_call,
     fail_call
 )
+from models import Patient
 
 appointment_bp = Blueprint(
     "appointments",
@@ -18,6 +19,7 @@ appointment_bp = Blueprint(
     "/appointments/book",
     methods=["POST"]
 )
+
 def book():
 
     data = request.get_json()
@@ -55,6 +57,11 @@ def book():
     body_part = data["body_part"]
     issue_type = data["issue_type"]
 
+    preferred_time = data.get(
+    "preferred_time",
+    "Earliest Available"
+    )
+
     transcript = data.get("transcript", "")
 
     # -----------------------------
@@ -81,7 +88,8 @@ def book():
     result = book_appointment(
         patient,
         body_part,
-        issue_type
+        issue_type,
+        preferred_time
     )
 
     # -----------------------------
@@ -118,3 +126,68 @@ def book():
         "end_time": slot.end_time.isoformat(),
         "status": appointment.status
     }), 201
+
+@appointment_bp.route(
+    "/appointments/patient",
+    methods=["POST"]
+)
+def get_patient_appointments():
+
+    data = request.get_json()
+
+    # Support Vogent function payload
+    if "params" in data and "args" in data["params"]:
+        data = data["params"]["args"]
+
+    phone_number = str(data.get("phone_number", "")).strip()
+
+    if not phone_number:
+        return jsonify({
+            "success": False,
+            "reason": "Missing phone number"
+        }), 400
+
+    patient = Patient.query.filter_by(
+        phone_number=phone_number
+    ).first()
+
+    if patient is None:
+        return jsonify({
+            "success": True,
+            "appointments": []
+        }), 200
+
+    appointments = []
+
+    for appointment in patient.appointments:
+
+        slot = appointment.slot
+        doctor = appointment.doctor
+
+        appointments.append({
+
+            "appointment_id": appointment.id,
+
+            "doctor": doctor.name,
+
+            "location": slot.location.name,
+
+            "start_time": slot.start_time.isoformat(),
+
+            "end_time": slot.end_time.isoformat(),
+
+            "status": appointment.status
+
+        })
+
+    return jsonify({
+
+        "success": True,
+
+        "patient": (
+            f"{patient.first_name} {patient.last_name}"
+        ),
+
+        "appointments": appointments
+
+    }), 200

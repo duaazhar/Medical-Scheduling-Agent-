@@ -12,7 +12,8 @@ from services.routing_service import route_patient
 def book_appointment(
     patient,
     body_part_name,
-    issue_type_name
+    issue_type_name,
+    preferred_time="Earliest Available"
 ):
     """
     Routes the patient and books the earliest available appointment.
@@ -36,7 +37,8 @@ def book_appointment(
     routing_result = route_patient(
         patient,
         body_part_name,
-        issue_type_name
+        issue_type_name,
+        preferred_time
     )
 
     if not routing_result["success"]:
