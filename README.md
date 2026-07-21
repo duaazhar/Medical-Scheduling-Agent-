@@ -1,211 +1,285 @@
-# Appointment Scheduling System
+# Orthopedic Scheduling Voice Agent
 
 ## Overview
 
-This project implements an AI-powered orthopedic appointment scheduling backend designed to integrate with a Vogent voice agent.
+This project implements a voice-enabled orthopedic appointment scheduling system designed to integrate with Vogent. The backend serves as the single source of truth for patient records, physician routing, appointment scheduling, call logging, and dashboard analytics.
 
-The architecture separates conversational logic from scheduling logic:
+Patients can:
 
-```
-Vogent Agent
-      │
-      ▼
- Flask API
-      │
-      ▼
-Service Layer
-      │
-      ▼
-SQLite Database
-```
+- Book a new appointment
+- Be matched to an appropriate physician based on body part and issue type
+- Automatically distinguish between new and returning patients
+- View previously scheduled appointments
+- Receive the earliest available appointment or appointments matching a requested time preference
 
-The backend is the single source of truth for patients, physician routing, scheduling, appointment booking, and call history.
+The project is built with Flask, SQLAlchemy, SQLite, and a simple HTML/CSS/JavaScript dashboard.
 
 ---
 
-# Features Implemented
+## Architecture
 
-## Database
+```
+Vogent Voice Agent
+        │
+        ▼
+    Flask Backend
+        │
+        ▼
+     SQLite Database
+        │
+        ▼
+ Dashboard + REST API
+```
 
-- SQLite database
-- Normalized relational schema
-- SQLAlchemy ORM models
-- Seed scripts for physicians, locations, specialties, and appointment slots
-
-Models:
-
-- Patient
-- Doctor
-- Location
-- DoctorLocation
-- DoctorSpecialty
-- Slot
-- Appointment
-- Call
+The voice agent contains no business logic. All routing, scheduling, and persistence occur in the backend.
 
 ---
 
-## Patient Management
-
-- Automatic lookup by phone number
-- Existing patient detection
-- New patient creation
-
----
-
-## Physician Routing
-
-Routes patients based on:
-
-- Body part
-- Issue type
-- Physician specialty
-- New patient acceptance rules
-
-Returns the first physician matching all constraints.
-
----
-
-## Appointment Booking
-
-- Finds earliest available appointment
-- Creates appointment
-- Marks slot unavailable
-- Returns booking confirmation
-
----
-
-## Call Logging
-
-Every booking attempt creates a Call record.
-
-Successful bookings:
-
-- Scheduled status
-- Appointment linked
-- Start/end timestamps
-
-Failed bookings:
-
-- Failed status
-- Start/end timestamps
-
----
-
-## Dashboard
-
-Dashboard includes:
-
-- Total patients
-- Total appointments
-- Total calls
-- Successful calls
-- Failed calls
-- Available slots
-- Booked slots
-- Recent call history
-
----
-
-## API
-
-### POST
-
-```
-/appointments/book
-```
-
-Books an appointment.
-
-### GET
-
-```
-/calls
-```
-
-Returns call history.
-
-### GET
-
-```
-/dashboard
-```
-
-Dashboard UI.
-
-### GET
-
-```
-/dashboard/stats
-```
-
-Dashboard statistics.
-
-### GET
-
-```
-/dashboard/calls
-```
-
-Recent call history.
-
----
-
-# Technologies
+## Tech Stack
 
 - Python
 - Flask
 - SQLAlchemy
 - SQLite
+- HTML/CSS/JavaScript
+- Docker
+- Ngrok (development)
 - Vogent
-- ngrok
 
 ---
 
-# Project Priorities
+## Features Implemented
 
-Implementation focused on completing the core scheduling workflow before adding polish.
+### Patient Management
 
-Prioritized:
+- Create new patients
+- Identify returning patients using phone number
+- Store patient demographics
 
-- Backend architecture
-- Normalized database schema
-- Routing engine
-- Appointment booking
-- Patient lookup
-- Vogent backend integration
+### Physician Routing
+
+Routing is based on normalized physician capabilities:
+
+- Body part
+- Issue type
+- Accepting new patients
+
+Supported body parts:
+
+- Knee
+- Hip
+- Shoulder
+- Hand/Wrist
+- Foot/Ankle
+- Spine
+
+Supported issue types:
+
+- Fracture
+- Sports Medicine
+- Joint Replacement
+- General
+
+### Scheduling
+
+- Route patients to an eligible physician
+- Find available appointment slots
+- Respect new-patient eligibility
+- Support earliest available scheduling
+- Support basic preferred time requests (morning, afternoon, earliest available)
+- Book appointments and reserve slots
+
+### Appointment Lookup
+
+Patients can retrieve all scheduled appointments using their phone number.
+
+### Call Logging
+
+Every scheduling attempt creates a call record.
+
+Stored information includes:
+
+- patient
+- appointment
+- status
+- start time
+- end time
+- transcript (when provided)
+
+### Dashboard
+
+Current dashboard includes:
+
+- Total patients
+- Total appointments
+- Total calls
+- Available slots
+- Recent calls
+- Doctor availability
+- Upcoming appointments
+
+---
+
+## Database Design
+
+Normalized relational schema including:
+
+- Patients
+- Doctors
+- DoctorCapabilities
+- Locations
+- DoctorLocations
+- BodyParts
+- IssueTypes
+- Slots
+- Appointments
+- Calls
+
+Routing rules are stored as structured database records rather than embedded in application logic.
+
+---
+
+## API Endpoints
+
+### Scheduling
+
+```
+POST /appointments/book
+```
+
+Creates an appointment.
+
+---
+
+### Appointment Lookup
+
+```
+POST /appointments/patient
+```
+
+Returns all appointments associated with a patient's phone number.
+
+---
+
+### Dashboard
+
+```
+GET /dashboard
+GET /dashboard/stats
+GET /dashboard/calls
+GET /dashboard/doctors
+GET /dashboard/appointments
+```
+
+---
+
+## Docker
+
+The backend has been containerized.
+
+SQLite persistence is maintained using a mounted Docker volume for the Flask `instance` directory.
+
+---
+
+## Testing
+
+Tested manually using:
+
+- Postman
+- Vogent Function Calls
+- Local dashboard
+- Docker container
+
+Scenarios tested include:
+
+- New patient booking
+- Returning patient booking
+- Physician routing
+- No matching physician
+- No available slots
+- Appointment lookup
+- Dashboard statistics
 - Call logging
-- Dashboard
-
-Deferred:
-
-- Prompt refinement
-- Body-part normalization
-- Issue-type normalization
-- Better dashboard visualizations
-- Comprehensive testing
-- Additional dashboard endpoints
 
 ---
 
-# Known Issues
+## Current Limitations
 
-- Vogent prompt still allows some free-form responses that should be normalized before reaching the backend.
-- Vogent voice testing is currently blocked by account concurrency limits; chat mode is being used during development.
-- Transcript storage is implemented but not yet populated from Vogent.
-- Dashboard currently refreshes on page load rather than automatically.
-- Error handling can be expanded for additional edge cases.
+To prioritize delivering a working end-to-end scheduling system, several features were intentionally simplified.
+
+### Time Preferences
+
+Preferred scheduling currently supports broad requests such as:
+
+- Morning
+- Afternoon
+- Earliest available
+
+It does not yet optimize for exact dates or perform conversational negotiation over multiple candidate slots.
+
+### Natural Language Normalization
+
+The voice prompt guides callers toward supported body parts and issue types, but backend synonym mapping and fuzzy matching are limited.
+
+### Dashboard
+
+The dashboard focuses on operational visibility and does not yet include filtering, search, analytics over time, or richer visualizations.
+
+### Authentication
+
+No authentication or authorization has been implemented because it was outside the scope of the assignment.
+
+### Production Deployment
+
+The backend has been Dockerized locally. Deployment to AWS EC2 was planned but not completed due to AWS account/payment setup requirements.
 
 ---
 
-# Future Improvements
+## Prioritization Decisions
 
-- Improve prompt engineering
-- Alias mapping for body parts and issue types
-- Dashboard filters/search
-- Appointment cancellation
-- Appointment rescheduling
-- Better reporting metrics
-- Unit tests
-- Integration tests
-- Voice transcript storage
+The primary goal was to deliver a complete scheduling workflow rather than maximize feature count.
+
+Priority was given to:
+
+1. Reliable physician routing
+2. Appointment scheduling
+3. Patient lookup
+4. Vogent integration
+5. Call logging
+6. Dashboard visibility
+
+Features such as richer dashboard analytics, rescheduling, cancellations, advanced NLP normalization, and production infrastructure were intentionally deferred.
+
+---
+
+## Future Improvements
+
+With additional development time I would prioritize:
+
+- AWS EC2 deployment
+- Docker Compose configuration
+- Improved natural-language normalization
+- Flexible scheduling based on specific dates and times
+- Appointment cancellation and rescheduling
+- Dashboard filtering and search
+- Historical analytics and reporting
+- Automated testing
+- Authentication and authorization
+- Background task processing for call logging and notifications
+
+---
+
+## Repository Structure
+
+```
+backend/
+    models/
+    routes/
+    services/
+    seed/
+    templates/
+    static/
+    instance/
+    Dockerfile
+    app.py
+```
